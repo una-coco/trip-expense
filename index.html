@@ -971,17 +971,18 @@ function renderSyncSection(){
 async function createSharedBin(){
   try{
     setSyncUI("busy"); toast("建立中...");
+    const safeName=("trip-"+(state.settings.tripName||"")).replace(/[^\x20-\x7E]/g,"").trim().slice(0,40)||"trip-expense";
     const res=await fetch(`${JSONBIN_BASE}/b`,{
       method:"POST",
-      headers:{"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY,"X-Bin-Name":"trip-expense-"+(state.settings.tripName||"trip")},
+      headers:{"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY,"X-Bin-Name":safeName},
       body:JSON.stringify({settings:state.settings, expenses:state.expenses, deletedIds:state.deletedIds})
     });
-    if(!res.ok) throw new Error(res.status);
+    if(!res.ok){ const t=await res.text().catch(()=>""); throw new Error("HTTP "+res.status+" "+t.slice(0,120)); }
     const j=await res.json();
     state.settings.binId=j.metadata.id;
     saveLocal(); setSyncUI("ok"); renderSettings();
     toast("共用帳本已建立");
-  }catch(e){ console.warn(e); setSyncUI("off"); toast("建立失敗，請檢查網路"); }
+  }catch(e){ console.warn(e); setSyncUI("off"); toast("建立失敗："+(e.message||e)); }
 }
 async function joinSharedBin(){
   const code=document.getElementById("joinCode").value.trim();
